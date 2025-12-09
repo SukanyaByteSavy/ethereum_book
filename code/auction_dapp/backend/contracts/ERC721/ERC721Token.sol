@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.8.20;
 
 import "./ERC721.sol";
 import "./DeprecatedERC721.sol";
@@ -36,7 +36,7 @@ contract ERC721Token is ERC721, ERC721BasicToken {
   /**
   * @dev Constructor function
   */
-  function ERC721Token(string _name, string _symbol) public {
+  constructor(string memory _name, string memory _symbol) {
     name_ = _name;
     symbol_ = _symbol;
   }

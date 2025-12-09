@@ -1,21 +1,21 @@
 // Version of Solidity compiler this program was written for
-pragma solidity ^0.4.19;
+pragma solidity ^0.8.20;
 
-import 'zeppelin-solidity/contracts/token/ERC20/StandardToken.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 
 // A faucet for ERC20 token MET
 contract METFaucet {
 
-	StandardToken public METoken;
+	ERC20 public METoken;
 	address public METOwner;
 
 	// METFaucet constructor, provide the address of METoken contract and
 	// the owner address we will be approved to transferFrom
-	function METFaucet(address _METoken, address _METOwner) public {
+	constructor(address _METoken, address _METOwner) {
 
 		// Initialize the METoken from the address provided
-		METoken = StandardToken(_METoken);
+		METoken = ERC20(_METoken);
 		METOwner = _METOwner;
 	}
 
@@ -29,6 +29,7 @@ contract METFaucet {
     }
 
 	// REJECT any incoming ether
-	function () public payable { revert(); }
+	fallback() external payable { revert(); }
+
 
 }

@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const wsEndpoint = "ws://172.16.163.129:8546"
+const wsEndpoint = "wss://ethereum-sepolia-rpc.publicnode.com" // Public Sepolia WSS
 const ws = new WebSocket(wsEndpoint);
 
 const requests = [

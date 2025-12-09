@@ -111,7 +111,7 @@ Teutsch最近提出了一种新的去中心化脱链数据可用性设计oracle 
    which is updated every 10 minutes.
  */
 
-pragma solidity ^0.4.1;
+pragma solidity ^0.8.20;
 import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
 
 /*
@@ -124,7 +124,7 @@ contract EthUsdPriceTicker is usingOraclize {
     event newOraclizeQuery(string description);
     event newCallbackResult(string result);
 
-    function EthUsdPriceTicker() payable {
+    constructor() payable {
         // signals TLSN proof generation and storage on IPFS
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
 
@@ -132,9 +132,9 @@ contract EthUsdPriceTicker is usingOraclize {
         queryTicker();
     }
 
-    function __callback(bytes32 _queryId, string _result, bytes _proof) public {
-        if (msg.sender != oraclize_cbAddress()) throw;
-        newCallbackResult(_result);
+    function __callback(bytes32 _queryId, string memory _result, bytes memory _proof) public {
+        require(msg.sender == oraclize_cbAddress());
+        emit newCallbackResult(_result);
 
         /*
          * parse the result string into an unsigned integer for on-chain use
@@ -148,10 +148,10 @@ contract EthUsdPriceTicker is usingOraclize {
     }
 
     function queryTicker() public payable {
-        if (oraclize_getPrice("URL") > this.balance) {
-            newOraclizeQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
+        if (oraclize_getPrice("URL") > address(this).balance) {
+            emit newOraclizeQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
         } else {
-            newOraclizeQuery("Oraclize query was sent, standing by for the answer..");
+            emit newOraclizeQuery("Oraclize query was sent, standing by for the answer..");
 
             // query params are (delay in seconds, datasource type, datasource argument)
             // specifies JSONPath, to fetch specific portion of JSON API result
@@ -171,18 +171,17 @@ contract EthUsdPriceTicker is usingOraclize {
 金融数据提供商Thomson Reuters还为以太坊提供了一项名为BlockOne IQ的oracle服务，允许在私有或许可网络上运行的智能合约请求市场和参考数据[13]。下面是oracle的接口，以及将发出请求的客户端合约：
 
 ----
-pragma solidity ^0.4.11;
+pragma solidity ^0.8.20;
 
-contract Oracle {
-    uint256 public divisor;
-    function initRequest(uint256 queryType, function(uint256) external onSuccess, function(uint256) external onFailure) public returns (uint256 id);
-    function addArgumentToRequestUint(uint256 id, bytes32 name, uint256 arg) public;
-    function addArgumentToRequestString(uint256 id, bytes32 name, bytes32 arg) public;
-    function executeRequest(uint256 id) public;
-    function getResponseUint(uint256 id, bytes32 name) public constant returns(uint256);
-    function getResponseString(uint256 id, bytes32 name) public constant returns(bytes32);
-    function getResponseError(uint256 id) public constant returns(bytes32);
-    function deleteResponse(uint256 id) public constant;
+interface Oracle {
+    function initRequest(uint256 queryType, function(uint256) external onSuccess, function(uint256) external onFailure) external returns (uint256 id);
+    function addArgumentToRequestUint(uint256 id, bytes32 name, uint256 arg) external;
+    function addArgumentToRequestString(uint256 id, bytes32 name, bytes32 arg) external;
+    function executeRequest(uint256 id) external;
+    function getResponseUint(uint256 id, bytes32 name) external view returns(uint256);
+    function getResponseString(uint256 id, bytes32 name) external view returns(bytes32);
+    function getResponseError(uint256 id) external view returns(bytes32);
+    function deleteResponse(uint256 id) external;
 }
 
 contract OracleB1IQClient {
@@ -190,9 +189,9 @@ contract OracleB1IQClient {
     Oracle private oracle;
     event LogError(bytes32 description);
 
-    function OracleB1IQClient(address addr) public payable {
+    constructor(address addr) payable {
         oracle = Oracle(addr);
-        getIntraday("IBM", now);
+        getIntraday("IBM", block.timestamp);
     }
 
     function getIntraday(bytes32 ric, uint256 timestamp) public {

@@ -165,12 +165,12 @@ decimals:: 返回用于分割Token数量的小数位数。例如，如果小数�
 [[ERC20_interface_example]]
 ----
 contract ERC20 {
-   function totalSupply() constant returns (uint theTotalSupply);
-   function balanceOf(address _owner) constant returns (uint balance);
-   function transfer(address _to, uint _value) returns (bool success);
-   function transferFrom(address _from, address _to, uint _value) returns (bool success);
-   function approve(address _spender, uint _value) returns (bool success);
-   function allowance(address _owner, address _spender) constant returns (uint remaining);
+   function totalSupply() public view returns (uint theTotalSupply);
+   function balanceOf(address _owner) public view returns (uint balance);
+   function transfer(address _to, uint _value) public returns (bool success);
+   function transferFrom(address _from, address _to, uint _value) public returns (bool success);
+   function approve(address _spender, uint _value) public returns (bool success);
+   function allowance(address _owner, address _spender) public view returns (uint remaining);
    event Transfer(address indexed _from, address indexed _to, uint _value);
    event Approval(address indexed _owner, address indexed _spender, uint _value);
 }
@@ -588,23 +588,23 @@ ERC20Token的用户可能无意中在转移中丢失其Token的方式之一是�
 include::code/METoken_METFaucet/contracts/METFaucet.sol
 
 // Version of Solidity compiler this program was written for
-pragma solidity ^0.4.19;
+pragma solidity ^0.8.20;
 
-import 'zeppelin-solidity/contracts/Token/ERC20/StandardToken.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 
 // A faucet for ERC20 Token MET
 contract METFaucet {
 
-	StandardToken public METoken;
+	ERC20 public METoken;
 	address public METOwner;
 
 	// METFaucet constructor, provide the address of METoken contract and
 	// the owner address we will be approved to transferFrom
-	function METFaucet(address _METoken, address _METOwner) public {
+	constructor(address _METoken, address _METOwner) {
 
 		// Initialize the METoken from the address provided
-		METoken = StandardToken(_METoken);
+		METoken = ERC20(_METoken);
 		METOwner = _METOwner;
 	}
 
@@ -618,7 +618,7 @@ contract METFaucet {
     }
 
 	// REJECT any incoming ether
-	function () public payable { revert(); }
+	fallback() external payable { revert(); }
 
 }
 ----
@@ -742,13 +742,9 @@ ERC223提案试图通过检测目的地地址是否是合同来解决无意中�
 为了检测目标地址是否为契约，ERC223参考实现使用了一小段内联字节码，并采用了一种颇具创造性的方式：
 
 ----
+----
 function isContract(address _addr) private view returns (bool is_contract) {
-	uint length;
-	assembly {
-		  //retrieve the size of the code on target address, this needs assembly
-		  length := extcodesize(_addr)
-	}
-	return (length>0);
+  return _addr.code.length > 0;
 }
 ----
 

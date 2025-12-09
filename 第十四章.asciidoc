@@ -170,17 +170,22 @@ $ solc -o BytecodeOutputDir --bin Example.sol
 
 [[simple_solidity_example]]
 ----
-pragma solidity ^0.4.19;
+pragma solidity ^0.8.20;
 
 contract example {
 
   address contractOwner;
 
-  function example() {
+  constructor() {
     contractOwner = msg.sender;
   }
 }
 ----
+
+[NOTE]
+====
+The opcode analysis below is based on an older compiler version (0.4.19). Modern Solidity compilers (0.8.x) may generate different bytecode (e.g., initializing the free memory pointer at 0x80 instead of 0x60), but the fundamental principles of EVM execution remain the same.
+====
 
 如果查看_BytecodeDir_目录，你将看到操作码文件_example.opcode_（请参阅<<simple_solidity_example>>），其中包含“example”合约的EVM机器语言操作码指令。在文本编辑器中打开_example.opcode_文件将显示以下内容：
 
@@ -322,7 +327,7 @@ ____________________________________________________________________
 [[faucet_example]]
 ----
 // Version of Solidity compiler this program was written for
-pragma solidity ^0.4.19;
+pragma solidity ^0.8.20;
 
 // Our first contract is a faucet!
 contract Faucet {
@@ -334,11 +339,11 @@ contract Faucet {
       require(withdraw_amount <= 100000000000000000);
 
       // Send the amount to the address that requested it
-      msg.sender.transfer(withdraw_amount);
+      payable(msg.sender).transfer(withdraw_amount);
     }
 
   // Accept any incoming amount
-  function () public payable {}
+  receive() external payable {}
 
 }
 ----

@@ -1,16 +1,16 @@
-pragma solidity ^0.4.22;
+pragma solidity ^0.8.20;
 
 contract calledContract {
 	event callEvent(address sender, address origin, address from);
 	function calledFunction() public {
-		emit callEvent(msg.sender, tx.origin, this);
+		emit callEvent(msg.sender, tx.origin, address(this));
 	}
 }
 
 library calledLibrary {
 	event callEvent(address sender, address origin,  address from);
 	function calledFunction() public {
-		emit callEvent(msg.sender, tx.origin, this);
+		emit callEvent(msg.sender, tx.origin, address(this));
 	}
 }
 
@@ -23,8 +23,10 @@ contract caller {
 		calledLibrary.calledFunction();
 
 		// Low level calls using the address object for calledContract
-		require(address(_calledContract).call(bytes4(keccak256("calledFunction()"))));
-		require(address(_calledContract).delegatecall(bytes4(keccak256("calledFunction()"))));
+		(bool success, ) = address(_calledContract).call(abi.encodeWithSignature("calledFunction()"));
+		require(success);
+		(bool success2, ) = address(_calledContract).delegatecall(abi.encodeWithSignature("calledFunction()"));
+		require(success2);
 
 
 

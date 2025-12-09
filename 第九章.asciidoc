@@ -396,16 +396,18 @@ mkdir contracts
 让我们制作一个ERC20 token，这意味着初始供应从0开始，token所有者（在我们的例子中，是crowdsale合约）可以创建新的 token并分配给投资者。为此，使用以下内容创建`contracts/SampleToken.sol`文件：
 
 ----
+----
 include::code/OpenZeppelin/contracts/SampleToken.sol
 
-pragma solidity 0.4.23;
+pragma solidity ^0.8.20;
 
-import 'openzeppelin-solidity/contracts/token/ERC20/MintableToken.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 
-contract SampleToken is MintableToken {
-  string public name = "SAMPLE TOKEN";
-  string public symbol = "SAM";
-  uint8 public decimals = 18;
+contract SampleToken is ERC20, Ownable {
+  constructor() ERC20("SAMPLE TOKEN", "SAM") Ownable(msg.sender) {
+    _mint(msg.sender, 21000000 * 10 ** decimals());
+  }
 }
 ----
 
@@ -416,24 +418,24 @@ OpenZeppelin已经提供了一个MintableToken合约，我们可以用它作为t
 正如我们之前所说的，OpenZeppelin合约是基本的构建块。这些crowdsale合约被设计为可组合的，只需阅读 https://github.com/OpenZeppelin/openzeppelin-solidity/blob/v1.9.0/contracts/crowdsale/Crowdsale.sol[Crowdsale]合约的源代码即可了解关于如何扩展它的指导。对于我们token的crowdsale，我们需要在crowdsale合约收到ether时才发行token，所以让我们使用https://github.com/OpenZeppelin/openzeppelin-solidity/blob/v1.9.0/contracts/crowdsale/emission/MintedCrowdsale.sol[MintedCrowdsale] 作为基础。为了让它更有趣，让我们把它做成 https://github.com/OpenZeppelin/openzeppelin-solidity/blob/v1.9.0/contracts/crowdsale/distribution/PostDeliveryCrowdsale.sol[PostDeliveryCrowdsale]， token只能在众筹结束后赎回。将以下内容写入`contracts/SampleCrowdsale.sol`：
 
 ----
+----
 include::code/OpenZeppelin/contracts/SampleCrowdsale.sol
 
-pragma solidity 0.4.23;
+pragma solidity ^0.8.20;
 
 import './SampleToken.sol';
-import 'openzeppelin-solidity/contracts/crowdsale/emission/MintedCrowdsale.sol';
-import 'openzeppelin-solidity/contracts/crowdsale/distribution/PostDeliveryCrowdsale.sol';
+import '@openzeppelin/contracts/crowdsale/emission/MintedCrowdsale.sol';
+import '@openzeppelin/contracts/crowdsale/distribution/PostDeliveryCrowdsale.sol';
 
 contract SampleCrowdsale is PostDeliveryCrowdsale, MintedCrowdsale {
 
   constructor(
     uint256 _openingTime,
-    uint256 _closingTime
+    uint256 _closingTime,
     uint256 _rate,
     address _wallet,
     MintableToken _token
   )
-    public
     Crowdsale(_rate, _wallet, _token)
     PostDeliveryCrowdsale(_openingTime, _closingTime)
   {

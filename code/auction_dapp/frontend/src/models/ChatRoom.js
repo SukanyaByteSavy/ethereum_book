@@ -14,9 +14,10 @@ export class ChatRoom {
     }
 
     async setWeb3(web3){
-        this.web3 = web3
-        this.keyID = await this.web3.shh.addPrivateKey(this.privateKey)
-        this.publicKey = await this.web3.shh.getPublicKey(this.keyID)
+        console.warn("Whisper (shh) is deprecated in modern Web3. This feature is disabled.");
+        // this.web3 = web3
+        // this.keyID = await this.web3.shh.addPrivateKey(this.privateKey)
+        // this.publicKey = await this.web3.shh.getPublicKey(this.keyID)
     }
 
     getWeb3(){

@@ -68,25 +68,44 @@ Vue.mixin({
         this.$deedRepoInstance = new DeedRepository()
         this.$auctionRepoInstance = new AuctionRepository()
         
-        this.$chatroomInstance.setWeb3(new Web3_1(Config.SHH_ENDPOINT))
+        // this.$chatroomInstance.setWeb3(new Web3_1(Config.SHH_ENDPOINT)) // Whisper is deprecated/removed in many modern contexts
 
         // one instance of web3 available to all components
-        if (typeof web3 !== 'undefined') {
-            web3 = new Web3(web3.currentProvider)
-            this.$auctionRepoInstance.setWeb3(web3)
-            this.$deedRepoInstance.setWeb3(web3)
+        const initWeb3 = async () => {
+            if (window.ethereum) {
+                const web3 = new Web3(window.ethereum);
+                try {
+                    // Request account access if needed
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    
+                    this.$auctionRepoInstance.setWeb3(web3)
+                    this.$deedRepoInstance.setWeb3(web3)
 
-            store.setMetamaskInstalled()
-            web3.version.getNetwork((err, netId) => {
-                store.setNetworkId(netId)
-            })
-            // pull accounts every 2 seconds
-            setInterval(() => {
-                web3.eth.getAccounts((err, data) => {
-                    if(data.length > 0) store.setWeb3DefaultAccount(data[0])
-                })
-            }, 2000)
+                    store.setMetamaskInstalled()
+                    
+                    const netId = await web3.eth.net.getId();
+                    store.setNetworkId(netId)
+
+                    // pull accounts every 2 seconds
+                    setInterval(async () => {
+                        const accounts = await web3.eth.getAccounts();
+                        if(accounts.length > 0) store.setWeb3DefaultAccount(accounts[0])
+                    }, 2000)
+
+                } catch (error) {
+                    console.error("User denied account access", error);
+                }
+            } else if (window.web3) { // Legacy dapp browsers...
+                const web3 = new Web3(window.web3.currentProvider);
+                 this.$auctionRepoInstance.setWeb3(web3)
+                 this.$deedRepoInstance.setWeb3(web3)
+            } else {
+                console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+            }
         }
+
+        initWeb3();
+        
         // inject config to components
         this.$config = Config
     }

@@ -1,5 +1,5 @@
 // Version of Solidity compiler this program was written for
-pragma solidity ^0.4.22;
+pragma solidity ^0.8.20;
 
 // Our first contract is a faucet!
 contract Faucet {
@@ -19,7 +19,7 @@ contract Faucet {
 
 	// Contract destructor
 	function destroy() public onlyOwner {
-		selfdestruct(owner);
+		selfdestruct(payable(owner));
 	}
 
     // Give out ether to anyone who asks
@@ -29,10 +29,10 @@ contract Faucet {
 		require(withdraw_amount <= 0.1 ether);
 
         // Send the amount to the address that requested it
-        msg.sender.transfer(withdraw_amount);
+        payable(msg.sender).transfer(withdraw_amount);
     }
 
     // Accept any incoming amount
-    function () public payable {}
+    receive() external payable {}
 
 }

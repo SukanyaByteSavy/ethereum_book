@@ -1,5 +1,5 @@
 const axios = require("axios")
-const url = "http://172.16.163.129:8545"
+const url = "https://rpc.sepolia.org" // Public Sepolia RPC
 
 const requests = [
   {

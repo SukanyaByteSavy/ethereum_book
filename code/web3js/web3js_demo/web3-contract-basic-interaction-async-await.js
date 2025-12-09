@@ -2,91 +2,91 @@
 
 /**
  * @author Francisco Javier Rojas García <fjrojasgarcia@gmail.com>
+ * Updated for Web3.js v4 and Sepolia testnet
  */
 
 console.log('Mastering Ethereum - web3.js basic interactions using async/await')
-console.log('Author: Francisco Javier Rojas García - fjrojasgarcia@gmail.com')
 
-var Web3 = require('web3');
-var fs = require('fs')
+const { Web3 } = require('web3');
+const axios = require('axios'); // Modern replacement for node-rest-client-promise
 
-// Prepare your Infura host url
-var infura_host = "https://kovan.infura.io"
+// Prepare your Infura host url (or any public RPC)
+const infura_host = "https://rpc.sepolia.org";
 
 // Instantiate web3 provider
-var web3 = new Web3(infura_host);
+const web3 = new Web3(infura_host);
 
 // Let's do some basic interactions at web3 level
 async function basicInterations() {
-  // Let's see the Protocol Version
-  var protocolVersion = await web3.eth.getProtocolVersion();
-  console.log(`Protocol Version: ${protocolVersion}`);
+  try {
+    // Let's see the Protocol Version
+    // Note: getProtocolVersion is deprecated/removed in some v4 providers or returns a hex string
+    try {
+        var protocolVersion = await web3.eth.getProtocolVersion();
+        console.log(`Protocol Version: ${protocolVersion}`);
+    } catch(e) { console.log("Protocol version not supported by provider"); }
 
-  // Now I'm curious about the current gas price
-  var gasPrice = await web3.eth.getGasPrice();
-  console.log(`Gas Price: ${gasPrice}`);
+    // Now I'm curious about the current gas price
+    var gasPrice = await web3.eth.getGasPrice();
+    console.log(`Gas Price: ${gasPrice} wei`);
 
-  // And, Whats the last mined block in my chain?
-  var blockNumber = await web3.eth.getBlockNumber();
-  console.log(`Block Number: ${blockNumber}`);
+    // And, Whats the last mined block in my chain?
+    var blockNumber = await web3.eth.getBlockNumber();
+    console.log(`Block Number: ${blockNumber}`);
 
-  // Now let's dive into some basics actions with a contract
-  // We will use the contract at;
-  // https://kovan.etherscan.io/address/0xd0a1e359811322d97991e03f863a0c30c2cf029c#code
+    // Now let's dive into some basics actions with a contract
+    // We will use the WETH contract on Sepolia
+    // https://sepolia.etherscan.io/address/0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14
 
-  // First things first, let's initialize our contract address
-  var our_contract_address = "0xd0A1E359811322d97991E03f863a0C30C2cF029C";
+    // First things first, let's initialize our contract address
+    var our_contract_address = "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14";
 
-  // Let's see its balance
-  var balance = await web3.eth.getBalance(our_contract_address);
-  console.log(`Balance of ${our_contract_address}: ${balance}`);
+    // Let's see its balance
+    var balance = await web3.eth.getBalance(our_contract_address);
+    console.log(`Balance of ${our_contract_address}: ${balance} wei`);
 
-  // Now let's see its byte code
-  var code = await web3.eth.getCode(our_contract_address);
-  console.log("Contract code: ----------------------------------------------\n");
-  console.log(code);
-  console.log("-------------------------------------------------------------\n");
+    // Now let's see its byte code
+    var code = await web3.eth.getCode(our_contract_address);
+    // console.log("Contract code: ", code.substring(0, 50) + "..."); // Truncated for readability
 
-  // Let's initialize our contract url in Etherescan for Kovan chain
-  var etherescan_url = `http://kovan.etherscan.io/api?module=contract&action=getabi&address=${our_contract_address}`
-  console.log(etherescan_url);
+    // Let's initialize our contract url in Etherscan for Sepolia chain
+    var etherescan_url = `https://api-sepolia.etherscan.io/api?module=contract&action=getabi&address=${our_contract_address}`
+    
+    // Note: You might need an API key for Etherscan in production, but often works without for low rate
+    console.log("Fetching ABI from:", etherescan_url);
 
-  var client = require('node-rest-client-promise').Client();
+    const response = await axios.get(etherescan_url);
+    
+    if (response.data.status !== '1') {
+        throw new Error("Failed to fetch ABI: " + response.data.result);
+    }
 
-  var etherescan_response = await client.getPromise(etherescan_url)
+    // We get here our contract ABI
+    var our_contract_abi = JSON.parse(response.data.result);
 
-  // Leave this two lines for future object analysis
-  //const util = require('util')
-  //console.log(util.inspect(etherescan_response, false, null))
+    // Let's instantiate our contract object
+    var our_contract = new web3.eth.Contract(our_contract_abi, our_contract_address);
 
-  // We get here our contract ABI
-  our_contract_abi = JSON.parse(etherescan_response.data.result);
+    // Let's see our contract address
+    console.log(`Our Contract address:  ${our_contract.options.address}`);
 
-  // Let's instantiate our contract object
-  var our_contract = await new web3.eth.Contract(our_contract_abi, our_contract_address);
+    // Now let's see our contract total supply
+    var totalSupply = await our_contract.methods.totalSupply().call();
+    console.log(`Total Supply of WETH:  ${totalSupply}`);
 
-  // Let's see our contract address
-  console.log(`Our Contract address:  ${our_contract._address}`);
+    // Now let's see our contract public variable name  
+    var name = await our_contract.methods.name().call();
+    console.log(`Token Name:  ${name}`);
 
-  // or in this other way
-  console.log(`Our Contract address in other way:  ${our_contract.options.address}`);
+    // Now let's see our contract public variable symbol  
+    var symbol = await our_contract.methods.symbol().call();
+    console.log(`Token Symbol:  ${symbol}`);
 
-  // Now our contract abi
-  console.log("Our contract abi: " + JSON.stringify(our_contract.options.jsonInterface));
-
-  // This is turning more interesting, let's see what's going with our contract methods
-  // Now let's see our contract total supply
-  var totalSupply = await our_contract.methods.totalSupply().call();
-  console.log(`Total Supply of Our Contract address ${our_contract._address}:  ${totalSupply}`);
-
-  // Now let's see our contract public variable name  
-  var name = await our_contract.methods.name().call();
-  console.log(`Public variable name of our Contract address ${our_contract._address}:  ${name}`);
-
-  // Now let's see our contract public variable symbol  
-  var symbol = await our_contract.methods.symbol().call();
-  console.log(`Public variable symbol of our Contract address ${our_contract._address}:  ${symbol}`);
+  } catch (error) {
+      console.error("An error occurred:", error);
+  }
 }
 
 // Let's interact with a node
 basicInterations();
+

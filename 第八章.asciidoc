@@ -140,11 +140,11 @@ contract Faucet {
         require(withdraw_amount <= 100000000000000000);
 
         // Send the amount to the address that requested it
-        msg.sender.transfer(withdraw_amount);
+        payable(msg.sender).transfer(withdraw_amount);
     }
 
     // Accept any incoming amount
-    function () public payable {}
+    receive() external payable {}
 
 }
 ----
@@ -199,7 +199,7 @@ Contract JSON ABI
 
 [[compiler_version]]
 ----
-pragma solidity ^0.4.19;
+pragma solidity ^0.8.20;
 ----
 
 Solidity编译器读取版本编译指示，如果编译器版本与版本编译指示不兼容，将会产生错误。在这种情况下，我们的版本编译指出，这个程序可以由Solidity编译器编译，最低版本为+0.4.19+。但是，符号^表示我们允许编译任何_minor修订版_在+0.4.19+之上的，例如+0.4.20+，但不是+0.5.0+（这是一个主要版本，不是小修订版） 。Pragma指令不会编译为EVM字节码。它们仅由编译器用来检查兼容性。
@@ -210,7 +210,7 @@ Solidity编译器读取版本编译指示，如果编译器版本与版本编译
 [source,solidity,linenums]
 ----
 // Version of Solidity compiler this program was written for
-pragma solidity ^0.4.19;
+pragma solidity ^0.8.20;
 
 // Our first contract is a faucet!
 contract Faucet {
@@ -222,11 +222,11 @@ contract Faucet {
         require(withdraw_amount <= 100000000000000000);
 
         // Send the amount to the address that requested it
-        msg.sender.transfer(withdraw_amount);
+        payable(msg.sender).transfer(withdraw_amount);
     }
 
     // Accept any incoming amount
-    function () public payable {}
+    receive() external payable {}
 
 }
 ----
@@ -333,7 +333,7 @@ block.timestamp:: 矿工在当前块中放置的时间戳，自Unix纪元（秒�
 
 address.balance:: 地址的余额，以wei为单位。例如，当前合约余额是 +address(this).balance+。
 
-address.transfer(amount):: 将金额（wei）转移到该地址，并在发生任何错误时抛出异常。我们在+Faucet+示例中的+msg.sender+地址上使用了此函数，+msg.sender.transfer()+。
+address.transfer(amount):: 将金额（wei）转移到该地址，并在发生任何错误时抛出异常。我们在+Faucet+示例中的+msg.sender+地址上使用了此函数，+payable(msg.sender).transfer()+。
 
 address.send(amount):: 类似于前面的+transfer+, 但是失败时不抛出异常，而是返回+false+。
 
@@ -403,24 +403,10 @@ payable:: payable函数是可以接受付款的功能。没有payable的函数�
 
 有一个特殊函数只能使用一次。创建合约时，它还运行 _构造函数_ _constructor function_（如果存在），以初始化合约状态。构造函数与创建合约时在同一个交易中运行。构造函数是可选的。事实上，我们的+Faucet+示例没有构造函数。
 
-构造函数可以通过两种方式指定。到Solidity v.0.4.21，构造函数是一个名称与合约名称相匹配的函数：
-
-[[old_constructor_style]]
-.Constructor function prior to Solidity v0.4.22
-----
-contract MEContract {
-	function MEContract() {
-		// This is the constructor
-	}
-}
-----
-
-这种格式的难点在于如果合约名称被改变并且构造函数名称没有改变，它就不再是构造函数了。这可能会导致一些非常令人讨厌的，意外的并且很难注意到的错误。想象一下，例如，如果构造函数正在为控制目的而设置合约的“所有者”。它不仅可以在创建合约时设置所有者，还可以像正常功能那样“可调用”，允许任何第三方在合约创建后劫持合约并成为“所有者”。
-
-为了解决构造函数的潜在问题，它基于与合约名称相同的名称，Solidity v0.4.22引入了一个+constructor+关键字，它像构造函数一样运行，但没有名称。重命名合约并不会影响构造函数。此外，更容易确定哪个函数是构造函数。看起来像这样：
+构造函数是名为+constructor+的特殊函数，它在合约创建期间运行一次，用于初始化合约状态。
 
 ----
-pragma ^0.4.22
+pragma solidity ^0.8.20;
 contract MEContract {
 	constructor () {
 		// This is the constructor
@@ -433,7 +419,7 @@ contract MEContract {
 合约生命周期的另一端是 _合约销毁_ _contract destruction_。合约被称为+SELFDESTRUCT+的特殊EVM操作码销毁。它曾经是+SUICIDE+，但由于该词的负面性，该名称已被弃用。在Solidity中，此操作码作为高级内置函数+selfdestruct+公开，该函数采用一个参数：地址以接收合约帐户中剩余的余额。看起来像这样：
 
 ----
-selfdestruct(address recipient);
+selfdestruct(payable(recipient));
 ----
 
 ==== 添加一个构造函数和selfdestruct到我们的+Faucet+示例
@@ -444,7 +430,7 @@ selfdestruct(address recipient);
 
 ----
 // Version of Solidity compiler this program was written for
-pragma solidity ^0.4.22;
+pragma solidity ^0.8.20;
 
 // Our first contract is a faucet!
 contract Faucet {
@@ -469,7 +455,7 @@ contract Faucet {
 // Contract destructor
 function destroy() public {
 	require(msg.sender == owner);
-	selfdestruct(owner);
+	selfdestruct(payable(owner));
 }
 ----
 
@@ -498,7 +484,7 @@ modifier onlyOwner {
 
 ----
 function destroy() public onlyOwner {
-    selfdestruct(owner);
+    selfdestruct(payable(owner));
 }
 ----
 
@@ -531,7 +517,7 @@ contract Child is Parent1, Parent2 {
 我们首先定义一个基础合约+owned+，它拥有一个+owner+变量，并在合约的构造函数中设置：
 
 ----
-contract owned {
+abstract contract owned {
 	address owner;
 
 	// Contract constructor: set owner
@@ -553,7 +539,7 @@ contract owned {
 contract mortal is owned {
 	// Contract destructor
 	function destroy() public onlyOwner {
-		selfdestruct(owner);
+		selfdestruct(payable(owner));
 	}
 }
 ----
@@ -569,10 +555,10 @@ contract Faucet is mortal {
         // Limit withdrawal amount
         require(withdraw_amount <= 100000000000000000);
         // Send the amount to the address that requested it
-        msg.sender.transfer(withdraw_amount);
+        payable(msg.sender).transfer(withdraw_amount);
     }
     // Accept any incoming amount
-    function () public payable {}
+    receive() external payable {}
 }
 ----
 
@@ -663,9 +649,9 @@ function () public payable {
 ----
 include::code/Solidity/Faucet8.sol['code/Solidity/Faucet8.sol']
 // Version of Solidity compiler this program was written for
-pragma solidity ^0.4.22;
+pragma solidity ^0.8.20;
 
-contract owned {
+abstract contract owned {
 	address owner;
 	// Contract constructor: set owner
 	constructor() {
@@ -681,7 +667,7 @@ contract owned {
 contract mortal is owned {
 	// Contract destructor
 	function destroy() public onlyOwner {
-		selfdestruct(owner);
+		selfdestruct(payable(owner));
 	}
 }
 
@@ -693,14 +679,14 @@ contract Faucet is mortal {
 	function withdraw(uint withdraw_amount) public {
 		// Limit withdrawal amount
 		require(withdraw_amount <= 0.1 ether);
-		require(this.balance >= withdraw_amount,
+		require(address(this).balance >= withdraw_amount,
 			"Insufficient balance in faucet for withdrawal request");
 		// Send the amount to the address that requested it
-		msg.sender.transfer(withdraw_amount);
+		payable(msg.sender).transfer(withdraw_amount);
 		emit Withdrawal(msg.sender, withdraw_amount);
 	}
 	// Accept any incoming amount
-	function () public payable {
+	receive() external payable {
 		emit Deposit(msg.sender, msg.value);
 	}
 }
@@ -890,19 +876,19 @@ contract Token is mortal {
 ----
 include::code/truffle/CallExamples/contracts/CallExamples.sol["code/truffle/CallExamples/contracts/CallExamples.sol"]
 
-pragma solidity ^0.4.22;
+pragma solidity ^0.8.20;
 
 contract calledContract {
 	event callEvent(address sender, address origin, address from);
 	function calledFunction() public {
-		emit callEvent(msg.sender, tx.origin, this);
+		emit callEvent(msg.sender, tx.origin, address(this));
 	}
 }
 
 library calledLibrary {
 	event callEvent(address sender, address origin,  address from);
 	function calledFunction() public {
-		emit callEvent(msg.sender, tx.origin, this);
+		emit callEvent(msg.sender, tx.origin, address(this));
 	}
 }
 
@@ -915,8 +901,10 @@ contract caller {
 		calledLibrary.calledFunction();
 
 		// Low level calls using the address object for calledContract
-		require(address(_calledContract).call(bytes4(keccak256("calledFunction()"))));
-		require(address(_calledContract).delegatecall(bytes4(keccak256("calledFunction()"))));
+		(bool success, ) = address(_calledContract).call(abi.encodeWithSignature("calledFunction()"));
+		require(success);
+		(success, ) = address(_calledContract).delegatecall(abi.encodeWithSignature("calledFunction()"));
+		require(success);
 	}
 }
 ----

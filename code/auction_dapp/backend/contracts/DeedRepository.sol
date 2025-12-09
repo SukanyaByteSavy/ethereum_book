@@ -1,4 +1,4 @@
-pragma solidity ^0.4.17;
+pragma solidity ^0.8.20;
 import "./ERC721/ERC721Token.sol";
 
 /**
@@ -13,7 +13,7 @@ contract DeedRepository is ERC721Token {
     * @param _name string represents the name of the repository
     * @param _symbol string represents the symbol of the repositor
     */
-    function DeedRepository(string _name, string _symbol) public ERC721Token(_name, _symbol) {}
+    constructor(string memory _name, string memory _symbol) ERC721Token(_name, _symbol) {}
     
     /**
     * @dev Public function to register a new deed

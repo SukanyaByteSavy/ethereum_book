@@ -1,9 +1,12 @@
-pragma solidity 0.4.23;
+pragma solidity ^0.8.20;
 
-import 'openzeppelin-solidity/contracts/token/ERC20/MintableToken.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SampleToken is MintableToken {
-  string public name = "SAMPLE TOKEN";
-  string public symbol = "SAM";
-  uint8 public decimals = 18;
+contract SampleToken is ERC20, Ownable {
+  constructor() ERC20("SAMPLE TOKEN", "SAM") Ownable(msg.sender) {}
+
+  function mint(address to, uint256 amount) public onlyOwner {
+    _mint(to, amount);
+  }
 }

@@ -12,7 +12,10 @@ export class DeedRepository {
     }
     setWeb3(web3) {
         this.web3 = web3
-        this.contractInstance = this.web3.eth.contract(Config.DEEDREPOSITORY_ABI).at(Config.DEEDREPOSITORY_ADDRESS)
+        this.contractInstance = new this.web3.eth.Contract(
+            Config.DEEDREPOSITORY_ABI, 
+            Config.DEEDREPOSITORY_ADDRESS
+        )
     }
     
     getWeb3() {
@@ -23,64 +26,51 @@ export class DeedRepository {
         this.account = account
     }
 
-    getCurrentBlock() {
-        return new Promise((resolve, reject ) => {
-            this.web3.eth.getBlockNumber((err, blocknumber) => {
-                if(!err) resolve(blocknumber)
-                reject(err)
-            })
-        })
+    async getCurrentBlock() {
+        return await this.web3.eth.getBlockNumber()
     }
-
-    // getAccounts() {
-    //     return new Promise((resolve, reject ) => {
-    //         this.web3.eth.getAccounts((err, accounts) => {
-    //             if(!err) resolve(accounts)
-    //             reject(err)
-    //         })
-    //     })
-    // }
 
     async watchIfCreated(cb) {
         const currentBlock = await this.getCurrentBlock()
-        const eventWatcher = this.contractInstance.DeedRegistered({}, {fromBlock: currentBlock - 1, toBlock: 'latest'})
-        eventWatcher.watch(cb)
+        this.contractInstance.events.DeedRegistered({
+            fromBlock: currentBlock
+        })
+        .on('data', (event) => {
+            cb(null, event)
+        })
+        .on('error', (err) => {
+            cb(err, null)
+        })
     }
 
     async watchIfDeedTransfered(cb) {
         const currentBlock = await this.getCurrentBlock()
-        const eventWatcher = this.contractInstance.Transfer({}, {fromBlock: currentBlock - 1, toBlock: 'latest'})
-        eventWatcher.watch(cb)
-    }
-
-    exists(deedId) {
-        return new Promise(async (resolve, reject) => {
-            this.contractInstance.exists(deedId, {from: this.account, gas: this.gas }, (err, transaction) => {
-                if(!err) resolve(transaction)
-                reject(err)
-            })
+        this.contractInstance.events.Transfer({
+            fromBlock: currentBlock
+        })
+        .on('data', (event) => {
+            cb(null, event)
+        })
+        .on('error', (err) => {
+            cb(err, null)
         })
     }
 
-    transferTo(to, deedId) {
-        return new Promise(async (resolve, reject) => {
-            this.contractInstance.transferFrom(this.account, to, deedId, {from: this.account, gas: this.gas }, (err, transaction) => {
-                if(!err) resolve(transaction)
-                reject(err)
-            })
-        })
-        
+    async exists(deedId) {
+        return await this.contractInstance.methods.exists(deedId).call({from: this.account})
     }
 
-    create(deedId, deedURI) {
-        console.log('contractinsatnce', this.contractInstance )
-        return new Promise(async (resolve, reject) => {
-            this.contractInstance.registerDeed(deedId, deedURI, {from: this.account, gas: this.gas }, (err, transaction) => {
-                if(!err) 
-                    resolve(transaction)
-                else
-                    reject(err)
-            })
+    async transferTo(to, deedId) {
+        return await this.contractInstance.methods.transferFrom(this.account, to, deedId).send({
+            from: this.account, 
+            gas: this.gas 
+        })
+    }
+
+    async create(deedId, deedURI) {
+        return await this.contractInstance.methods.registerDeed(deedId, deedURI).send({
+            from: this.account, 
+            gas: this.gas 
         })
     }
 }

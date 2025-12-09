@@ -1,4 +1,4 @@
-import "Faucet.sol"
+import "./Faucet8.sol";
 
 contract Token is mortal {
 
@@ -6,6 +6,6 @@ contract Token is mortal {
 
 	constructor(address _f) {
 		_faucet = Faucet(_f);
-		_faucet.withdraw(0.1 ether)
+		_faucet.withdraw(0.1 ether);
 	}
 }
